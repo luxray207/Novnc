@@ -1,0 +1,33 @@
+name: Windows via localhost.run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-windows:
+    runs-on: [self-hosted]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run Windows container
+        run: |
+          docker-compose up -d
+          sleep 5
+          echo "Windows container started"
+
+      - name: Create SSH key
+        run: |
+          ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
+          echo "-----BEGIN PUBLIC KEY-----"
+          cat /tmp/id_rsa.pub
+          echo "-----END PUBLIC KEY-----"
+          echo "Add the above public key to https://localhost.run SSH page"
+          echo "Waiting 50 seconds..."
+          sleep 50
+
+      - name: SSH Tunnel to localhost.run
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8006 ssh.localhost.run &
+          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 3389:localhost:3389 ssh.localhost.run &
+          echo "Tunnel started"
