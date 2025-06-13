@@ -1,3 +1,3 @@
 admin:12345:admin
 wanz:wanz:user
-tes1:tes1:user
+abay:12345:user
