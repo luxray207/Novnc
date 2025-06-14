@@ -1,3 +1,4 @@
 admin:12345:admin
 wanz:wanz:user
 abay:12345:user
+wawa:wawa:user
