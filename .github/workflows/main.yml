@@ -1,4 +1,4 @@
-name: Ubuntu VNC Desktop with SSH and Public URL
+name: Ubuntu VNC Desktop with SSH, Public URL, Backup & Restore
 
 on:
   workflow_dispatch:
@@ -11,37 +11,66 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
+    - name: Download Backup Artifact (if exists)
+      uses: actions/download-artifact@v4
+      with:
+        name: vnc_data_backup
+        path: backup
+      continue-on-error: true
+
     - name: Run Ubuntu VNC Desktop (docker)
       run: |
+        docker volume create vnc_data || true
+
+        # If backup exists, restore it
+        if [ -f backup/vnc_data_backup.tar.gz ]; then
+          echo "✅ Restoring backup to Docker volume..."
+          docker run --rm -v vnc_data:/data -v $PWD/backup:/backup alpine sh -c "cd /data && tar xzvf /backup/vnc_data_backup.tar.gz"
+        else
+          echo "ℹ️ No backup found. Starting fresh."
+        fi
+
+        # Run VNC Docker
         docker run -d \
           --name ubuntu-lite-vnc \
           --shm-size=1g \
           -e VNC_USER=hozo \
           -e VNC_PASSWORD=hozoo \
           -e RESOLUTION=1920x1080 \
+          -v vnc_data:/root \
           -p 8086:80 \
           --restart unless-stopped \
           dorowu/ubuntu-desktop-lxde-vnc:focal
+
         sleep 10
         echo "✅ Ubuntu VNC Desktop running on port 8086."
 
     - name: Create SSH key
       run: |
         ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
-        echo "-----BEGIN PUBLIC KEY-----"
         cat /tmp/id_rsa.pub
-        echo "-----END PUBLIC KEY-----"
-        echo "Add the above public key to https://localhost.run SSH page (if needed)"
-        echo "Waiting 50 seconds for you to copy public key..."
+        echo "Add SSH key to https://localhost.run if needed"
         sleep 50
 
     - name: SSH Tunnel to localhost.run (port 8086)
       run: |
-        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8080 localhost.run &
+        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8086 localhost.run &
         sleep 10
-        echo "✅ Tunnel started. Public URL should appear above!"
+        echo "✅ Tunnel started."
 
-    - name: Keep Action Alive
+    - name: Keep Alive for 6 hours
       run: |
-        echo "✅ Setup complete. Keeping container alive for 6h (max GitHub Actions runtime)."
-        sleep 5160000
+        echo "✅ Keeping alive for 6 hours..."
+        sleep 21600  # 6 jam = 21600 detik
+
+    - name: Backup Docker Volume
+      run: |
+        mkdir -p backup
+        docker run --rm -v vnc_data:/data -v $PWD/backup:/backup alpine tar czvf /backup/vnc_data_backup.tar.gz -C /data .
+        ls -lh backup
+
+    - name: Upload Backup Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vnc_data_backup
+        path: backup/vnc_data_backup.tar.gz
