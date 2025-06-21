@@ -44,4 +44,4 @@ jobs:
     - name: Keep Action Alive
       run: |
         echo "✅ Setup complete. Keeping container alive for 6h (max GitHub Actions runtime)."
-        sleep 21600
+        sleep 5160000
