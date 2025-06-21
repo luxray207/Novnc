@@ -13,14 +13,7 @@ jobs:
 
     - name: Run Ubuntu VNC Desktop (docker)
       run: |
-        docker run -d \
-          --name ubuntu-ultrawide-vnc \
-          --shm-size=1g \
-          -e VNC_PASSWORD=hozoo \
-          -e RESOLUTION=3840x1600 \
-          -p 8086:80 \
-          --restart unless-stopped \
-          dorowu/ubuntu-desktop-lxde-vnc:focal
+        docker run -it --rm --name windows -p 8006:8006 --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN -v "${PWD:-.}/windows:/storage" --stop-timeout 999999999999999999 dockurr/windows
         sleep 10
         echo "✅ Ubuntu VNC Desktop running on port 8086."
 
@@ -36,7 +29,7 @@ jobs:
 
     - name: SSH Tunnel to localhost.run (port 8086)
       run: |
-        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8086 localhost.run &
+        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8006 localhost.run &
         sleep 10
         echo "✅ Tunnel started. Public URL should appear above!"
 
