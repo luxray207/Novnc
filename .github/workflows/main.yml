@@ -37,7 +37,7 @@ jobs:
 
     - name: SSH Tunnel to localhost.run (port 8086)
       run: |
-        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R wehkhch.lhr.rocks:80:localhost:8086 plan@localhost.run &
+        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8080 localhost.run &
         sleep 10
         echo "✅ Tunnel started. Public URL should appear above!"
 
