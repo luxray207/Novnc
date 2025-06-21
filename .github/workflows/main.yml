@@ -1,33 +1,44 @@
-name: Windows via localhost.run
+name: Ollama Phi WebUI with SSH and Public URL
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger
 
 jobs:
-  run-windows:
-    runs-on: [self-hosted]
+  ollama-phi:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      
+- name: run docker
+  run: |
+    docker run -d \
+   --name ubuntu-ultrawide-vnc \
+   --shm-size=1g \
+   -e VNC_PASSWORD=hozoo \
+   -e RESOLUTION=3840x1600 \
+   -p 8086:80 \
+   --restart unless-stopped \
+   dorowu/ubuntu-desktop-lxde-vnc:focal
 
-      - name: Run Windows container
-        run: |
-          docker-compose up -d
-          sleep 5
-          echo "Windows container started"
+    - name: Create SSH key
+      run: |
+        ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
+        echo "-----BEGIN PUBLIC KEY-----"
+        cat /tmp/id_rsa.pub
+        echo "-----END PUBLIC KEY-----"
+        echo "Add the above public key to https://localhost.run SSH page (if needed)"
+        echo "Waiting 50 seconds for you to copy public key..."
+        sleep 50
 
-      - name: Create SSH key
-        run: |
-          ssh-keygen -t rsa -b 2048 -f /tmp/id_rsa -N ""
-          echo "-----BEGIN PUBLIC KEY-----"
-          cat /tmp/id_rsa.pub
-          echo "-----END PUBLIC KEY-----"
-          echo "Add the above public key to https://localhost.run SSH page"
-          echo "Waiting 50 seconds..."
-          sleep 50
+    - name: SSH Tunnel to localhost.run
+      run: |
+        ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8086 localhost.run &
+        sleep 10
+        echo "✅ Tunnel started. Public URL should appear above!"
 
-      - name: SSH Tunnel to localhost.run
-        run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 80:localhost:8006 ssh.localhost.run &
-          ssh -o StrictHostKeyChecking=no -i /tmp/id_rsa -R 3389:localhost:3389 ssh.localhost.run &
-          echo "Tunnel started"
+    - name: Keep Action Alive
+      run: |
+        echo "✅ Setup complete. Keeping container alive for 6h (max GitHub Actions runtime)."
+        sleep 21600
